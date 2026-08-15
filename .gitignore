@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.env
+
+# Datos y resultados generados: se reproducen desde código
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Artefactos locales
+models/
+reports/generated/
+powerbi/*.pbix
+powerbi/*.pbit
+
+# Editores
+.vscode/
+.idea/
