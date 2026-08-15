@@ -3,8 +3,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from src.generar_datos import create_branches, load_config
-
+from src.generar_datos import create_branches, create_products, load_config
 
 class TestBranches(unittest.TestCase):
     def setUp(self):
@@ -24,6 +23,17 @@ class TestBranches(unittest.TestCase):
         second = create_branches(self.config, np.random.default_rng(seed))
 
         pd.testing.assert_frame_equal(first, second)
+
+    def test_product_structure(self):
+        rng = np.random.default_rng(self.config["project"]["random_seed"])
+        products = create_products(rng)
+
+        self.assertEqual(len(products), 50)
+        self.assertEqual(products["categoria"].nunique(), 6)
+        self.assertTrue(products["id_producto"].is_unique)
+        self.assertTrue((products["costo_base"] > 0).all())
+        self.assertTrue((products["popularidad"] > 0).all())
+        self.assertEqual(products["importado"].sum(), 12)
 
 
 if __name__ == "__main__":
