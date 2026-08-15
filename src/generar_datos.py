@@ -310,6 +310,64 @@ def add_market_context(
 
     return result
 
+def add_pricing(
+    sales: pd.DataFrame,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """Calcula costo, precio y descuento desde variables económicas."""
+    result = sales.copy()
+
+    inflation_factor = (
+        1
+        + (result["indice_inflacion"].to_numpy() - 3.0) / 100
+    )
+    import_factor = (
+        1
+        + result["importado"].to_numpy()
+        * (result["dolar_paralelo"].to_numpy() / 6.90 - 1)
+    )
+    cost_noise = rng.lognormal(
+        mean=0.0,
+        sigma=0.05,
+        size=len(result),
+    )
+
+    result["costo"] = np.round(
+        result["costo_base"].to_numpy()
+        * inflation_factor
+        * import_factor
+        * cost_noise,
+        2,
+    )
+
+    target_margin = np.clip(
+        result["margen_objetivo"].to_numpy()
+        + rng.normal(0, 0.025, len(result)),
+        0.08,
+        0.65,
+    )
+
+    result["precio"] = np.round(
+        result["costo"].to_numpy() / (1 - target_margin),
+        2,
+    )
+
+    discount = rng.beta(1.5, 7.0, len(result)) * 0.45
+    campaign_month = result["fecha"].dt.month.isin([6, 11, 12]).to_numpy()
+
+    discount += campaign_month * rng.uniform(
+        0.03,
+        0.12,
+        len(result),
+    )
+
+    result["descuento"] = np.round(
+        np.clip(discount, 0, 0.60),
+        4,
+    )
+
+    return result
+
 def main() -> None:
     config = load_config()
     rng = np.random.default_rng(config["project"]["random_seed"])
@@ -386,6 +444,15 @@ def main() -> None:
                 "indice_macroeconomico",
             ]
         ].isna().sum()
+    )
+
+    sales = add_pricing(sales, rng)
+
+    print("\nPrecio y costo por categoría:")
+    print(
+        sales.groupby("categoria")[["costo", "precio", "descuento"]]
+        .mean()
+        .round(2)
     )
 
 

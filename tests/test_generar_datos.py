@@ -165,6 +165,46 @@ class TestBranches(unittest.TestCase):
 
         self.assertLess(rain_traffic, dry_traffic)
 
+    def test_pricing(self):
+        rng = np.random.default_rng(self.config["project"]["random_seed"])
+
+        branches = create_branches(self.config, rng)
+        products = create_products(rng)
+        customers = create_customers(self.config, rng)
+        calendar = create_calendar_effects(self.config, rng)
+        transactions = create_transaction_skeleton(
+            self.config,
+            calendar,
+            rng,
+        )
+        sales = assign_transaction_entities(
+            transactions,
+            branches,
+            products,
+            customers,
+            rng,
+        )
+        sales = add_market_context(sales, calendar, rng)
+        sales = add_pricing(sales, rng)
+
+        self.assertFalse(
+            sales[["costo", "precio", "descuento"]].isna().any().any()
+        )
+        self.assertTrue((sales["costo"] > 0).all())
+        self.assertTrue((sales["precio"] > sales["costo"]).all())
+        self.assertTrue(sales["descuento"].between(0, 0.60).all())
+
+        campaign_discount = sales.loc[
+            sales["fecha"].dt.month.isin([6, 11, 12]),
+            "descuento",
+        ].mean()
+        regular_discount = sales.loc[
+            ~sales["fecha"].dt.month.isin([6, 11, 12]),
+            "descuento",
+        ].mean()
+
+        self.assertGreater(campaign_discount, regular_discount)
+
 
 if __name__ == "__main__":
     unittest.main()
