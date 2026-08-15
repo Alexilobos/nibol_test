@@ -293,6 +293,35 @@ class TestBranches(unittest.TestCase):
             -0.15,
         )
 
+    def test_churn_signals(self):
+        sales, rng = self.build_priced_sales()
+        sales = add_customer_experience(sales, rng)
+        sales = add_churn_signals(sales, rng)
+
+        self.assertTrue(
+            sales["probabilidad_fuga"].between(0, 1).all()
+        )
+        self.assertTrue(
+            sales["compras_previas_cliente"].ge(0).all()
+        )
+        self.assertTrue(
+            set(sales["fuga_real_90d"].unique()).issubset({0, 1})
+        )
+
+        low_satisfaction_churn = sales.loc[
+            sales["satisfaccion_cliente"].eq(1),
+            "probabilidad_fuga",
+        ].mean()
+        high_satisfaction_churn = sales.loc[
+            sales["satisfaccion_cliente"].eq(5),
+            "probabilidad_fuga",
+        ].mean()
+
+        self.assertGreater(
+            low_satisfaction_churn,
+            high_satisfaction_churn,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

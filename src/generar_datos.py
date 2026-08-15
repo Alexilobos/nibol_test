@@ -509,6 +509,46 @@ def add_customer_experience(
 
     return result
 
+def add_churn_signals(
+    sales: pd.DataFrame,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """Genera probabilidad y etiqueta de churn por instantánea de venta."""
+    result = sales.copy()
+
+    ordered = result.sort_values(["id_cliente", "fecha"]).copy()
+    ordered["compras_previas_cliente"] = ordered.groupby(
+        "id_cliente"
+    ).cumcount()
+
+    result["compras_previas_cliente"] = ordered[
+        "compras_previas_cliente"
+    ].reindex(result.index)
+
+    frequency_signal = np.log1p(
+        result["compras_previas_cliente"].to_numpy()
+    )
+
+    churn_logit = (
+        -0.65
+        + 0.035 * result["score_riesgo_cliente"].to_numpy()
+        - 0.95 * frequency_signal
+        - 0.48 * result["satisfaccion_cliente"].to_numpy()
+        + 0.30 * result["tiempo_entrega"].to_numpy()
+        + 0.12 * (result["indice_inflacion"].to_numpy() - 4)
+    )
+
+    result["probabilidad_fuga"] = np.round(
+        sigmoid(churn_logit),
+        4,
+    )
+    result["fuga_real_90d"] = (
+        rng.random(len(result))
+        < result["probabilidad_fuga"].to_numpy()
+    ).astype(int)
+
+    return result
+
 def main() -> None:
     config = load_config()
     rng = np.random.default_rng(config["project"]["random_seed"])
@@ -634,6 +674,23 @@ def main() -> None:
             ),
             3,
         ),
+    )
+
+    sales = add_churn_signals(sales, rng)
+
+    print("\nChurn:")
+    print(
+        "Probabilidad media:",
+        round(sales["probabilidad_fuga"].mean(), 3),
+    )
+    print(
+        "Tasa de fuga real:",
+        round(sales["fuga_real_90d"].mean(), 3),
+    )
+    print(
+        sales.groupby("satisfaccion_cliente")["probabilidad_fuga"]
+        .mean()
+        .round(3)
     )
 
 
