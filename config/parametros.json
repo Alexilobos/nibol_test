@@ -1,0 +1,24 @@
+{
+  "project": {
+    "name": "Andes Retail Analytics Group",
+    "random_seed": 20260815,
+    "currency": "BOB"
+  },
+  "simulation": {
+    "transaction_count": 5000,
+    "start_date": "2023-01-01",
+    "end_date": "2025-12-31",
+    "branches": 120,
+    "regions": 4,
+    "outlier_rate": 0.02
+  },
+  "alerting": {
+    "microbatch_minutes": 15,
+    "sales_drop_threshold": 0.2,
+    "churn_probability_threshold": 0.7
+  },
+  "modelling": {
+    "forecast_horizon_months": 12,
+    "validation_months": 6
+  }
+}
