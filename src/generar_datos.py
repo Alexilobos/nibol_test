@@ -203,7 +203,7 @@ def main() -> None:
             ]
         ].describe()
     )
-    
+
     calendar = create_calendar_effects(config, rng)
 
     print("\nCalendario:")
