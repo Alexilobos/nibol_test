@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from src.generar_datos import (
+    add_churn_signals,
     add_customer_experience,
     add_market_context,
     add_pricing,
