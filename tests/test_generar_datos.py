@@ -3,8 +3,12 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from src.generar_datos import create_branches, create_products, load_config
-
+from src.generar_datos import (
+    create_branches,
+    create_customers,
+    create_products,
+    load_config,
+)
 class TestBranches(unittest.TestCase):
     def setUp(self):
         self.config = load_config()
@@ -34,6 +38,21 @@ class TestBranches(unittest.TestCase):
         self.assertTrue((products["costo_base"] > 0).all())
         self.assertTrue((products["popularidad"] > 0).all())
         self.assertEqual(products["importado"].sum(), 12)
+        
+    def test_customer_structure(self):
+        rng = np.random.default_rng(self.config["project"]["random_seed"])
+        customers = create_customers(self.config, rng)
+
+        self.assertEqual(len(customers), 1000)
+        self.assertTrue(customers["id_cliente"].is_unique)
+        self.assertTrue(
+            customers["score_riesgo_cliente_base"].between(0, 100).all()
+        )
+        self.assertTrue(customers["lealtad_latente"].between(0, 1).all())
+        self.assertTrue(
+            customers["preferencia_digital"].between(0, 1).all()
+        )
+        self.assertTrue((customers["ingreso_relativo"] > 0).all())
 
 
 if __name__ == "__main__":

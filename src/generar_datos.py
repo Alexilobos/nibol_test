@@ -87,6 +87,33 @@ def create_products(rng: np.random.Generator) -> pd.DataFrame:
 
     return pd.DataFrame(rows)
 
+def create_customers(
+    config: dict, rng: np.random.Generator
+) -> pd.DataFrame:
+    """Crea atributos latentes que impulsarán pago, churn y scoring."""
+    customer_count = config["simulation"]["customers"]
+    customer_ids = np.arange(1, customer_count + 1)
+
+    risk = rng.beta(a=2.2, b=3.8, size=customer_count) * 100
+    loyalty = rng.beta(a=2.8, b=2.2, size=customer_count)
+    digital_preference = rng.beta(a=2.0, b=2.0, size=customer_count)
+    relative_income = rng.lognormal(
+        mean=0.0, sigma=0.35, size=customer_count
+    )
+
+    return pd.DataFrame(
+        {
+            "id_cliente": customer_ids,
+            "cliente": [
+                f"Cliente {customer_id:04d}"
+                for customer_id in customer_ids
+            ],
+            "score_riesgo_cliente_base": np.round(risk, 2),
+            "lealtad_latente": np.round(loyalty, 4),
+            "preferencia_digital": np.round(digital_preference, 4),
+            "ingreso_relativo": np.round(relative_income, 4),
+        }
+    )
 
 def main() -> None:
     config = load_config()
@@ -106,6 +133,20 @@ def main() -> None:
     print(products.groupby("categoria").size())
     print("\nCosto base por categoría:")
     print(products.groupby("categoria")["costo_base"].mean().round(2))
+
+    customers = create_customers(config, rng)
+
+    print("\nPerfil de clientes:")
+    print(
+        customers[
+            [
+                "score_riesgo_cliente_base",
+                "lealtad_latente",
+                "preferencia_digital",
+                "ingreso_relativo",
+            ]
+        ].describe()
+    )
 
 
 if __name__ == "__main__":
