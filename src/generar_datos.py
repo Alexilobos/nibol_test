@@ -171,6 +171,56 @@ def create_calendar_effects(
         }
     )
 
+def sample_transaction_dates(
+    calendar: pd.DataFrame,
+    transaction_count: int,
+    rng: np.random.Generator,
+) -> pd.Series:
+    """Muestrea fechas según demanda y menor actividad de fin de semana."""
+    weekend_factor = np.where(
+        calendar["fecha_dia"].dt.dayofweek >= 5,
+        0.72,
+        1.0,
+    )
+    weights = calendar["demanda_calendario"].to_numpy() * weekend_factor
+    probabilities = weights / weights.sum()
+
+    day_positions = rng.choice(
+        len(calendar),
+        size=transaction_count,
+        replace=True,
+        p=probabilities,
+    )
+    sampled_days = calendar.iloc[day_positions]["fecha_dia"].reset_index(
+        drop=True
+    )
+    seconds_open = rng.integers(
+        9 * 3600,
+        21 * 3600,
+        size=transaction_count,
+    )
+
+    return sampled_days + pd.to_timedelta(seconds_open, unit="s")
+
+
+def create_transaction_skeleton(
+    config: dict,
+    calendar: pd.DataFrame,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    transaction_count = config["simulation"]["transaction_count"]
+
+    return pd.DataFrame(
+        {
+            "id_venta": np.arange(1, transaction_count + 1),
+            "fecha": sample_transaction_dates(
+                calendar,
+                transaction_count,
+                rng,
+            ),
+        }
+    )
+
 def main() -> None:
     config = load_config()
     rng = np.random.default_rng(config["project"]["random_seed"])
@@ -209,6 +259,17 @@ def main() -> None:
     print("\nCalendario:")
     print(calendar[["fecha_dia", "indice_inflacion", "dolar_paralelo"]].head())
     print(calendar.describe())
+
+    transactions = create_transaction_skeleton(config, calendar, rng)
+
+    print("\nEsqueleto transaccional:")
+    print(transactions.head())
+    print(f"Transacciones: {len(transactions)}")
+    print(
+        transactions.groupby(transactions["fecha"].dt.dayofweek)
+        .size()
+        .rename("ventas_por_dia_semana")
+    )
 
 
 if __name__ == "__main__":

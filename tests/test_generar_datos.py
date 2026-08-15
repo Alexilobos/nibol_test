@@ -8,6 +8,7 @@ from src.generar_datos import (
     create_calendar_effects,
     create_customers,
     create_products,
+    create_transaction_skeleton,
     load_config,
 )
 class TestBranches(unittest.TestCase):
@@ -66,6 +67,25 @@ class TestBranches(unittest.TestCase):
         self.assertTrue((calendar["dolar_paralelo"] > 0).all())
         self.assertTrue((calendar["demanda_calendario"] > 0).all())
         self.assertGreater(calendar["demanda_calendario"].std(), 0)
+
+    def test_transaction_skeleton(self):
+        rng = np.random.default_rng(self.config["project"]["random_seed"])
+        calendar = create_calendar_effects(self.config, rng)
+        transactions = create_transaction_skeleton(self.config, calendar, rng)
+
+        self.assertEqual(len(transactions), 5000)
+        self.assertTrue(transactions["id_venta"].is_unique)
+        self.assertGreaterEqual(transactions["fecha"].dt.hour.min(), 9)
+        self.assertLessEqual(transactions["fecha"].dt.hour.max(), 20)
+
+        weekday_count = (
+            transactions["fecha"].dt.dayofweek < 5
+        ).sum()
+        weekend_count = (
+            transactions["fecha"].dt.dayofweek >= 5
+        ).sum()
+
+        self.assertLess(weekend_count / 2, weekday_count / 5)
 
 
 if __name__ == "__main__":
