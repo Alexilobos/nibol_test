@@ -116,6 +116,7 @@ class TestBranches(unittest.TestCase):
         required_columns = [
             "sucursal",
             "region",
+            "vendedor",
             "cliente",
             "producto",
             "categoria",

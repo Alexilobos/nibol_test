@@ -253,6 +253,16 @@ def assign_transaction_entities(
         p=product_weights / product_weights.sum(),
     )
 
+    seller_number = rng.integers(1, 11, size=transaction_count)
+
+    sales["vendedor"] = [
+        f"Vendedor {branch_id:03d}-{seller:02d}"
+        for branch_id, seller in zip(
+            sales["id_sucursal"],
+            seller_number,
+        )
+    ]
+
     sales = sales.merge(branches, on="id_sucursal", how="left")
     sales = sales.merge(customers, on="id_cliente", how="left")
     sales = sales.merge(products, on="id_producto", how="left")
