@@ -259,6 +259,57 @@ def assign_transaction_entities(
 
     return sales
 
+def add_market_context(
+    sales: pd.DataFrame,
+    calendar: pd.DataFrame,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """Añade contexto macroeconómico, clima y tráfico a cada venta."""
+    result = sales.copy()
+    result["fecha_dia"] = result["fecha"].dt.normalize()
+
+    result = result.merge(
+        calendar,
+        on="fecha_dia",
+        how="left",
+    )
+
+    climate_by_region = {
+        "Occidente": "Frío",
+        "Valles": "Templado",
+        "Centro": "Lluvioso",
+        "Oriente": "Cálido",
+    }
+
+    rain_probability = np.where(
+        result["region"].eq("Centro"),
+        0.45,
+        0.25,
+    )
+    rainy = rng.random(len(result)) < rain_probability
+
+    result["clima"] = np.where(
+        rainy,
+        "Lluvioso",
+        result["region"].map(climate_by_region),
+    )
+
+    climate_traffic_effect = np.where(rainy, -9.0, 3.0)
+    traffic = (
+        100
+        * result["factor_demanda_sucursal"].to_numpy()
+        * result["demanda_calendario"].to_numpy()
+        + climate_traffic_effect
+        + rng.normal(0, 9, len(result))
+    )
+
+    result["nivel_trafico"] = np.maximum(
+        20,
+        np.round(traffic, 2),
+    )
+
+    return result
+
 def main() -> None:
     config = load_config()
     rng = np.random.default_rng(config["project"]["random_seed"])
@@ -321,6 +372,21 @@ def main() -> None:
     print(sales.groupby("region").size())
     print("\nCinco productos con más transacciones:")
     print(sales["producto"].value_counts().head())
+
+    sales = add_market_context(sales, calendar, rng)
+
+    print("\nTráfico promedio por clima:")
+    print(sales.groupby("clima")["nivel_trafico"].mean().round(2))
+    print("\nVariables macro nulas:")
+    print(
+        sales[
+            [
+                "indice_inflacion",
+                "dolar_paralelo",
+                "indice_macroeconomico",
+            ]
+        ].isna().sum()
+    )
 
 
 if __name__ == "__main__":

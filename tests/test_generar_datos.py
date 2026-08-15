@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from src.generar_datos import (
+    add_market_context,
     assign_transaction_entities,
     create_branches,
     create_calendar_effects,
@@ -120,6 +121,49 @@ class TestBranches(unittest.TestCase):
         self.assertFalse(sales[required_columns].isna().any().any())
         self.assertEqual(sales["region"].nunique(), 4)
         self.assertEqual(sales["sucursal"].nunique(), 120)
+
+    def test_market_context(self):
+        rng = np.random.default_rng(self.config["project"]["random_seed"])
+
+        branches = create_branches(self.config, rng)
+        products = create_products(rng)
+        customers = create_customers(self.config, rng)
+        calendar = create_calendar_effects(self.config, rng)
+        transactions = create_transaction_skeleton(
+            self.config,
+            calendar,
+            rng,
+        )
+        sales = assign_transaction_entities(
+            transactions,
+            branches,
+            products,
+            customers,
+            rng,
+        )
+        sales = add_market_context(sales, calendar, rng)
+
+        required_columns = [
+            "indice_inflacion",
+            "dolar_paralelo",
+            "indice_macroeconomico",
+            "clima",
+            "nivel_trafico",
+        ]
+
+        self.assertFalse(sales[required_columns].isna().any().any())
+        self.assertTrue((sales["nivel_trafico"] >= 20).all())
+
+        rain_traffic = sales.loc[
+            sales["clima"].eq("Lluvioso"),
+            "nivel_trafico",
+        ].mean()
+        dry_traffic = sales.loc[
+            ~sales["clima"].eq("Lluvioso"),
+            "nivel_trafico",
+        ].mean()
+
+        self.assertLess(rain_traffic, dry_traffic)
 
 
 if __name__ == "__main__":
