@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from src.generar_datos import (
+    assign_transaction_entities,
     create_branches,
     create_calendar_effects,
     create_customers,
@@ -86,6 +87,39 @@ class TestBranches(unittest.TestCase):
         ).sum()
 
         self.assertLess(weekend_count / 2, weekday_count / 5)
+
+    def test_transaction_entity_assignment(self):
+        rng = np.random.default_rng(self.config["project"]["random_seed"])
+
+        branches = create_branches(self.config, rng)
+        products = create_products(rng)
+        customers = create_customers(self.config, rng)
+        calendar = create_calendar_effects(self.config, rng)
+        transactions = create_transaction_skeleton(
+            self.config,
+            calendar,
+            rng,
+        )
+        sales = assign_transaction_entities(
+            transactions,
+            branches,
+            products,
+            customers,
+            rng,
+        )
+
+        required_columns = [
+            "sucursal",
+            "region",
+            "cliente",
+            "producto",
+            "categoria",
+        ]
+
+        self.assertEqual(len(sales), 5000)
+        self.assertFalse(sales[required_columns].isna().any().any())
+        self.assertEqual(sales["region"].nunique(), 4)
+        self.assertEqual(sales["sucursal"].nunique(), 120)
 
 
 if __name__ == "__main__":

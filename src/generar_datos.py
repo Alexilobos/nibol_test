@@ -221,6 +221,44 @@ def create_transaction_skeleton(
         }
     )
 
+def assign_transaction_entities(
+    transactions: pd.DataFrame,
+    branches: pd.DataFrame,
+    products: pd.DataFrame,
+    customers: pd.DataFrame,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """Asigna entidades usando probabilidades de negocio."""
+    sales = transactions.copy()
+    transaction_count = len(sales)
+
+    branch_weights = branches["factor_demanda_sucursal"].to_numpy()
+    sales["id_sucursal"] = rng.choice(
+        branches["id_sucursal"].to_numpy(),
+        size=transaction_count,
+        p=branch_weights / branch_weights.sum(),
+    )
+
+    customer_weights = 0.35 + customers["lealtad_latente"].to_numpy()
+    sales["id_cliente"] = rng.choice(
+        customers["id_cliente"].to_numpy(),
+        size=transaction_count,
+        p=customer_weights / customer_weights.sum(),
+    )
+
+    product_weights = products["popularidad"].to_numpy()
+    sales["id_producto"] = rng.choice(
+        products["id_producto"].to_numpy(),
+        size=transaction_count,
+        p=product_weights / product_weights.sum(),
+    )
+
+    sales = sales.merge(branches, on="id_sucursal", how="left")
+    sales = sales.merge(customers, on="id_cliente", how="left")
+    sales = sales.merge(products, on="id_producto", how="left")
+
+    return sales
+
 def main() -> None:
     config = load_config()
     rng = np.random.default_rng(config["project"]["random_seed"])
@@ -270,6 +308,19 @@ def main() -> None:
         .size()
         .rename("ventas_por_dia_semana")
     )
+
+    sales = assign_transaction_entities(
+        transactions,
+        branches,
+        products,
+        customers,
+        rng,
+    )
+
+    print("\nVentas por región:")
+    print(sales.groupby("region").size())
+    print("\nCinco productos con más transacciones:")
+    print(sales["producto"].value_counts().head())
 
 
 if __name__ == "__main__":
