@@ -38,7 +38,7 @@ class TestBranches(unittest.TestCase):
         self.assertTrue((products["costo_base"] > 0).all())
         self.assertTrue((products["popularidad"] > 0).all())
         self.assertEqual(products["importado"].sum(), 12)
-        
+
     def test_customer_structure(self):
         rng = np.random.default_rng(self.config["project"]["random_seed"])
         customers = create_customers(self.config, rng)
