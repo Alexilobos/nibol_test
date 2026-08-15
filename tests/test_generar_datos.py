@@ -5,6 +5,7 @@ import pandas as pd
 
 from src.generar_datos import (
     create_branches,
+    create_calendar_effects,
     create_customers,
     create_products,
     load_config,
@@ -53,6 +54,18 @@ class TestBranches(unittest.TestCase):
             customers["preferencia_digital"].between(0, 1).all()
         )
         self.assertTrue((customers["ingreso_relativo"] > 0).all())
+
+    def test_calendar_effects(self):
+        rng = np.random.default_rng(self.config["project"]["random_seed"])
+        calendar = create_calendar_effects(self.config, rng)
+
+        self.assertEqual(len(calendar), 1096)
+        self.assertEqual(calendar["fecha_dia"].min(), pd.Timestamp("2023-01-01"))
+        self.assertEqual(calendar["fecha_dia"].max(), pd.Timestamp("2025-12-31"))
+        self.assertTrue((calendar["indice_inflacion"] > 0).all())
+        self.assertTrue((calendar["dolar_paralelo"] > 0).all())
+        self.assertTrue((calendar["demanda_calendario"] > 0).all())
+        self.assertGreater(calendar["demanda_calendario"].std(), 0)
 
 
 if __name__ == "__main__":

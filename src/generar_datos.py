@@ -115,6 +115,62 @@ def create_customers(
         }
     )
 
+def create_calendar_effects(
+    config: dict, rng: np.random.Generator
+) -> pd.DataFrame:
+    """Genera tendencia, estacionalidad y contexto macro por día."""
+    simulation = config["simulation"]
+    dates = pd.date_range(
+        simulation["start_date"],
+        simulation["end_date"],
+        freq="D",
+    )
+
+    day_number = np.arange(len(dates))
+    day_of_year = dates.dayofyear.to_numpy()
+
+    annual_seasonality = np.sin(
+        2 * np.pi * (day_of_year - 18) / 365.25
+    )
+    semiannual_seasonality = np.sin(
+        4 * np.pi * day_of_year / 365.25
+    )
+    trend = day_number / len(dates)
+
+    inflation = (
+        3.0
+        + 2.5 * trend
+        + 0.40 * annual_seasonality
+        + rng.normal(0, 0.12, len(dates))
+    )
+    parallel_dollar = (
+        6.90 * (1 + 0.06 * trend)
+        + 0.15 * annual_seasonality
+        + rng.normal(0, 0.025, len(dates))
+    )
+    macro_index = (
+        100
+        + 4.0 * annual_seasonality
+        + 2.2 * semiannual_seasonality
+        - 3.0 * trend
+        + rng.normal(0, 0.8, len(dates))
+    )
+    calendar_demand = np.exp(
+        0.22 * annual_seasonality
+        + 0.07 * semiannual_seasonality
+        + 0.04 * trend
+    )
+
+    return pd.DataFrame(
+        {
+            "fecha_dia": dates,
+            "indice_inflacion": inflation,
+            "dolar_paralelo": parallel_dollar,
+            "indice_macroeconomico": macro_index,
+            "demanda_calendario": calendar_demand,
+        }
+    )
+
 def main() -> None:
     config = load_config()
     rng = np.random.default_rng(config["project"]["random_seed"])
@@ -147,6 +203,12 @@ def main() -> None:
             ]
         ].describe()
     )
+    
+    calendar = create_calendar_effects(config, rng)
+
+    print("\nCalendario:")
+    print(calendar[["fecha_dia", "indice_inflacion", "dolar_paralelo"]].head())
+    print(calendar.describe())
 
 
 if __name__ == "__main__":
