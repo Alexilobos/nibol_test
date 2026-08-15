@@ -430,6 +430,84 @@ def add_transaction_outcomes(
 
     return result
 
+def sigmoid(values: np.ndarray) -> np.ndarray:
+    """Convierte valores continuos en probabilidades entre 0 y 1."""
+    return 1 / (1 + np.exp(-np.clip(values, -25, 25)))
+
+def add_customer_experience(
+    sales: pd.DataFrame,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """Deriva entrega, satisfacción, pago y riesgo desde el contexto."""
+    result = sales.copy()
+
+    delivery_base = np.select(
+        [
+            result["region"].eq("Occidente"),
+            result["region"].eq("Oriente"),
+        ],
+        [3.0, 2.0],
+        default=2.5,
+    )
+
+    rainy = result["clima"].eq("Lluvioso").to_numpy()
+    high_traffic = result["nivel_trafico"].to_numpy() > 130
+
+    delivery_time = (
+        delivery_base
+        + rainy * 1.6
+        + high_traffic * 0.8
+        + rng.normal(0, 0.9, len(result))
+    )
+
+    result["tiempo_entrega"] = np.clip(
+        np.rint(delivery_time),
+        1,
+        10,
+    ).astype(int)
+
+    satisfaction = (
+        4.8
+        - 0.27 * result["tiempo_entrega"].to_numpy()
+        - 1.1 * result["descuento"].to_numpy()
+        + 0.6 * result["lealtad_latente"].to_numpy()
+        + rng.normal(0, 0.6, len(result))
+    )
+
+    result["satisfaccion_cliente"] = np.clip(
+        np.rint(satisfaction),
+        1,
+        5,
+    ).astype(int)
+
+    credit_probability = sigmoid(
+        (result["score_riesgo_cliente_base"].to_numpy() - 43) / 14
+        - 0.8 * result["preferencia_digital"].to_numpy()
+    )
+    credit = rng.random(len(result)) < credit_probability
+
+    result["metodo_pago"] = np.where(
+        credit,
+        "Crédito",
+        np.where(
+            result["preferencia_digital"].to_numpy() > 0.58,
+            "Billetera digital",
+            "Efectivo/Tarjeta",
+        ),
+    )
+
+    result["score_riesgo_cliente"] = np.round(
+        np.clip(
+            result["score_riesgo_cliente_base"].to_numpy()
+            + credit * 7
+            + rng.normal(0, 4, len(result)),
+            1,
+            99,
+        ),
+        2,
+    )
+
+    return result
 
 def main() -> None:
     config = load_config()
@@ -542,6 +620,20 @@ def main() -> None:
     print(
         "Ventas con utilidad negativa:",
         int((sales["utilidad"] < 0).sum()),
+    )
+
+    sales = add_customer_experience(sales, rng)
+
+    print("\nExperiencia de cliente:")
+    print(sales["metodo_pago"].value_counts())
+    print(
+        "Correlación entrega-satisfacción:",
+        round(
+            sales["tiempo_entrega"].corr(
+                sales["satisfaccion_cliente"]
+            ),
+            3,
+        ),
     )
 
 

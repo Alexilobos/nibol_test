@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from src.generar_datos import (
+    add_customer_experience,
     add_market_context,
     add_pricing,
     add_transaction_outcomes,
@@ -263,6 +264,34 @@ class TestBranches(unittest.TestCase):
         sales = add_pricing(sales, rng)
 
         return sales, rng
+
+    def test_customer_experience(self):
+        sales, rng = self.build_priced_sales()
+        sales = add_customer_experience(sales, rng)
+
+        self.assertTrue(sales["tiempo_entrega"].between(1, 10).all())
+        self.assertTrue(
+            sales["satisfaccion_cliente"].between(1, 5).all()
+        )
+        self.assertTrue(
+            sales["score_riesgo_cliente"].between(1, 99).all()
+        )
+
+        expected_methods = {
+            "Crédito",
+            "Billetera digital",
+            "Efectivo/Tarjeta",
+        }
+        self.assertEqual(
+            set(sales["metodo_pago"].unique()),
+            expected_methods,
+        )
+        self.assertLess(
+            sales["tiempo_entrega"].corr(
+                sales["satisfaccion_cliente"]
+            ),
+            -0.15,
+        )
 
 
 if __name__ == "__main__":
