@@ -240,6 +240,30 @@ class TestBranches(unittest.TestCase):
             0.011,
         )
 
+    def build_priced_sales(self):
+        rng = np.random.default_rng(self.config["project"]["random_seed"])
+
+        branches = create_branches(self.config, rng)
+        products = create_products(rng)
+        customers = create_customers(self.config, rng)
+        calendar = create_calendar_effects(self.config, rng)
+        transactions = create_transaction_skeleton(
+            self.config,
+            calendar,
+            rng,
+        )
+        sales = assign_transaction_entities(
+            transactions,
+            branches,
+            products,
+            customers,
+            rng,
+        )
+        sales = add_market_context(sales, calendar, rng)
+        sales = add_pricing(sales, rng)
+
+        return sales, rng
+
 
 if __name__ == "__main__":
     unittest.main()
