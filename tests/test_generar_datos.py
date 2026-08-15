@@ -206,6 +206,39 @@ class TestBranches(unittest.TestCase):
 
         self.assertGreater(campaign_discount, regular_discount)
 
+    def test_transaction_outcomes(self):
+        sales, rng = self.build_priced_sales()
+        sales = add_transaction_outcomes(sales, self.config, rng)
+
+        expected_outliers = int(
+            self.config["simulation"]["transaction_count"]
+            * self.config["simulation"]["outlier_rate"]
+        )
+        expected_income = (
+            sales["precio"]
+            * sales["cantidad"]
+            * (1 - sales["descuento"])
+        ).round(2)
+        expected_profit = (
+            expected_income - sales["costo"] * sales["cantidad"]
+        ).round(2)
+
+        self.assertTrue((sales["cantidad"] > 0).all())
+        self.assertEqual(
+            sales["es_outlier_simulado"].sum(),
+            expected_outliers,
+        )
+        self.assertGreater(sales["cantidad"].var(), sales["cantidad"].mean())
+        self.assertGreater(sales["nivel_trafico"].corr(sales["cantidad"]), 0.08)
+        self.assertLess(
+            (expected_income - sales["ingreso_neto"]).abs().max(),
+            0.011,
+        )
+        self.assertLess(
+            (expected_profit - sales["utilidad"]).abs().max(),
+            0.011,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

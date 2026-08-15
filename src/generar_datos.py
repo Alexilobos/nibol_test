@@ -368,6 +368,92 @@ def add_pricing(
 
     return result
 
+def add_transaction_outcomes(
+    sales: pd.DataFrame,
+    config: dict,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """Genera cantidad, ingresos, utilidad y outliers controlados."""
+    result = sales.copy()
+
+    expected_units = (
+        1.2
+        + 0.017 * result["nivel_trafico"].to_numpy()
+        + 1.6 * result["descuento"].to_numpy()
+        + 0.55 * result["lealtad_latente"].to_numpy()
+        - 0.0018 * result["precio"].to_numpy()
+    )
+    expected_units = np.clip(expected_units, 0.35, 9.0)
+
+    dispersion = 2.6
+    probability = dispersion / (dispersion + expected_units)
+
+    result["cantidad"] = (
+        rng.negative_binomial(dispersion, probability) + 1
+    )
+
+    result["es_outlier_simulado"] = 0
+    outlier_count = int(
+        round(
+            len(result)
+            * config["simulation"]["outlier_rate"]
+        )
+    )
+    outlier_index = rng.choice(
+        result.index.to_numpy(),
+        size=outlier_count,
+        replace=False,
+    )
+
+    result.loc[outlier_index, "cantidad"] *= rng.integers(
+        4,
+        10,
+        size=outlier_count,
+    )
+    result.loc[outlier_index, "descuento"] = np.round(
+        rng.uniform(0.40, 0.60, size=outlier_count),
+        4,
+    )
+    result.loc[outlier_index, "es_outlier_simulado"] = 1
+
+    result["ingreso_neto"] = np.round(
+        result["precio"]
+        * result["cantidad"]
+        * (1 - result["descuento"]),
+        2,
+    )
+    result["utilidad"] = np.round(
+        result["ingreso_neto"]
+        - result["costo"] * result["cantidad"],
+        2,
+    )
+
+    return result
+
+def build_priced_sales(self):
+    rng = np.random.default_rng(self.config["project"]["random_seed"])
+
+    branches = create_branches(self.config, rng)
+    products = create_products(rng)
+    customers = create_customers(self.config, rng)
+    calendar = create_calendar_effects(self.config, rng)
+    transactions = create_transaction_skeleton(
+        self.config,
+        calendar,
+        rng,
+    )
+    sales = assign_transaction_entities(
+        transactions,
+        branches,
+        products,
+        customers,
+        rng,
+    )
+    sales = add_market_context(sales, calendar, rng)
+    sales = add_pricing(sales, rng)
+
+    return sales, rng
+
 def main() -> None:
     config = load_config()
     rng = np.random.default_rng(config["project"]["random_seed"])
@@ -453,6 +539,32 @@ def main() -> None:
         sales.groupby("categoria")[["costo", "precio", "descuento"]]
         .mean()
         .round(2)
+    )
+
+    sales = add_transaction_outcomes(sales, config, rng)
+
+    print("\nResultados transaccionales:")
+    print(
+        sales[
+            [
+                "cantidad",
+                "ingreso_neto",
+                "utilidad",
+                "es_outlier_simulado",
+            ]
+        ].describe()
+    )
+    print(
+        "Tasa de outliers:",
+        round(sales["es_outlier_simulado"].mean(), 4),
+    )
+    print(
+        "Correlación tráfico-cantidad:",
+        round(sales["nivel_trafico"].corr(sales["cantidad"]), 3),
+    )
+    print(
+        "Ventas con utilidad negativa:",
+        int((sales["utilidad"] < 0).sum()),
     )
 
 
