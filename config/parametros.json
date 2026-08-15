@@ -10,6 +10,7 @@
     "end_date": "2025-12-31",
     "branches": 120,
     "regions": 4,
+    "customers": 1000,
     "outlier_rate": 0.02
   },
   "alerting": {
