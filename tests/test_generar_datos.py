@@ -6,6 +6,7 @@ import pandas as pd
 from src.generar_datos import (
     add_market_context,
     add_pricing,
+    add_transaction_outcomes,
     assign_transaction_entities,
     create_branches,
     create_calendar_effects,
