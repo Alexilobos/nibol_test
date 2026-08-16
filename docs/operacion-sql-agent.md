@@ -20,7 +20,7 @@ FROM sys.dm_server_services;
 
 | Job | Frecuencia | Pasos |
 |---|---:|---|
-| `JOB_RETAIL_MICROBATCH` | Cada 15 minutos | Carga de ventas, scoring de clientes y alertas |
+| `JOB_RETAIL_MICROBATCH` | Cada 15 minutos | Carga de ventas e inventario, scoring de clientes y alertas |
 | `JOB_RETAIL_FORECAST_MENSUAL` | Día 1 de cada mes, 03:00 | Forecast estacional SQL |
 
 Cada paso tiene hasta tres reintentos. El forecast usa tres reintentos con intervalo de diez minutos.

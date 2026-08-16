@@ -11,7 +11,8 @@
     "branches": 120,
     "regions": 4,
     "customers": 1000,
-    "outlier_rate": 0.02
+    "outlier_rate": 0.02,
+    "inventory_critical_rate": 0.08
   },
   "alerting": {
     "microbatch_minutes": 15,

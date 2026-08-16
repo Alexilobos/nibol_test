@@ -65,7 +65,18 @@ EXEC dbo.sp_add_jobstep
 
 EXEC dbo.sp_add_jobstep
     @job_name = N'JOB_RETAIL_MICROBATCH',
-    @step_name = N'02 - Calcular scoring de clientes',
+    @step_name = N'02 - Cargar inventario desde staging',
+    @subsystem = N'TSQL',
+    @database_name = N'BI_RETAIL_ANALYTICS',
+    @command = N'EXEC dbo.SP_CARGA_INVENTARIO;',
+    @on_success_action = 3,
+    @on_fail_action = 2,
+    @retry_attempts = 3,
+    @retry_interval = 5;
+
+EXEC dbo.sp_add_jobstep
+    @job_name = N'JOB_RETAIL_MICROBATCH',
+    @step_name = N'03 - Calcular scoring de clientes',
     @subsystem = N'TSQL',
     @database_name = N'BI_RETAIL_ANALYTICS',
     @command = N'EXEC dbo.SP_SCORING_CLIENTES;',
@@ -76,7 +87,7 @@ EXEC dbo.sp_add_jobstep
 
 EXEC dbo.sp_add_jobstep
     @job_name = N'JOB_RETAIL_MICROBATCH',
-    @step_name = N'03 - Generar alertas de negocio',
+    @step_name = N'04 - Generar alertas de negocio',
     @subsystem = N'TSQL',
     @database_name = N'BI_RETAIL_ANALYTICS',
     @command = N'EXEC dbo.SP_ALERTAS_NEGOCIO;',
