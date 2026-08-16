@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from importlib.resources import files
 import json
 from pathlib import Path
 
@@ -559,6 +560,70 @@ def add_churn_signals(
 
     return result
 
+def export_datasets(
+    sales: pd.DataFrame,
+    branches: pd.DataFrame,
+    products: pd.DataFrame,
+    customers: pd.DataFrame,
+    calendar: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Path]:
+    """Exporta hechos y dimensiones para staging/SQL Server."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    fact_columns = [
+        "id_venta",
+        "fecha",
+        "id_sucursal",
+        "sucursal",
+        "region",
+        "vendedor",
+        "id_cliente",
+        "cliente",
+        "id_producto",
+        "categoria",
+        "producto",
+        "costo",
+        "precio",
+        "cantidad",
+        "descuento",
+        "ingreso_neto",
+        "utilidad",
+        "metodo_pago",
+        "tiempo_entrega",
+        "satisfaccion_cliente",
+        "indice_macroeconomico",
+        "clima",
+        "dolar_paralelo",
+        "nivel_trafico",
+        "score_riesgo_cliente",
+        "probabilidad_fuga",
+        "fuga_real_90d",
+        "indice_inflacion",
+        "es_outlier_simulado",
+        "compras_previas_cliente",
+    ]
+
+    fact_sales = sales[fact_columns].sort_values(
+        ["fecha", "id_venta"]
+    )
+
+    files = {
+        "fact_ventas": output_dir / "fact_ventas.csv",
+        "dim_sucursal": output_dir / "dim_sucursal.csv",
+        "dim_producto": output_dir / "dim_producto.csv",
+        "dim_cliente": output_dir / "dim_cliente.csv",
+        "dim_fecha": output_dir / "dim_fecha.csv",
+    }
+
+    fact_sales.to_csv(files["fact_ventas"], index=False)
+    branches.to_csv(files["dim_sucursal"], index=False)
+    products.to_csv(files["dim_producto"], index=False)
+    customers.to_csv(files["dim_cliente"], index=False)
+    calendar.to_csv(files["dim_fecha"], index=False)
+
+    return files
+
 def main() -> None:
     config = load_config()
     rng = np.random.default_rng(config["project"]["random_seed"])
@@ -702,6 +767,19 @@ def main() -> None:
         .mean()
         .round(3)
     )
+
+    files = export_datasets(
+        sales,
+        branches,
+        products,
+        customers,
+        calendar,
+        ROOT / "data" / "raw",
+    )
+
+    print("\nArchivos generados:")
+    for name, path in files.items():
+        print(f"{name}: {path}")
 
 
 if __name__ == "__main__":
