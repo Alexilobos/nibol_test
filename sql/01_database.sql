@@ -1,0 +1,31 @@
+USE master;
+GO
+
+IF DB_ID(N'BI_RETAIL_ANALYTICS') IS NULL
+BEGIN
+    CREATE DATABASE BI_RETAIL_ANALYTICS;
+END;
+GO
+
+USE BI_RETAIL_ANALYTICS;
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.schemas
+    WHERE name = N'stg'
+)
+BEGIN
+    EXEC(N'CREATE SCHEMA stg');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.schemas
+    WHERE name = N'aud'
+)
+BEGIN
+    EXEC(N'CREATE SCHEMA aud');
+END;
+GO
