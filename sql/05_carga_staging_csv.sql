@@ -1,0 +1,81 @@
+USE BI_RETAIL_ANALYTICS;
+GO
+
+TRUNCATE TABLE stg.SUCURSAL_RAW;
+TRUNCATE TABLE stg.CLIENTE_RAW;
+TRUNCATE TABLE stg.PRODUCTO_RAW;
+TRUNCATE TABLE stg.FECHA_RAW;
+TRUNCATE TABLE stg.VENTAS_RAW;
+GO
+
+BULK INSERT stg.SUCURSAL_RAW
+FROM '/var/opt/mssql/import/dim_sucursal.csv'
+WITH (
+    FORMAT = 'CSV',
+    FIRSTROW = 2,
+    FIELDQUOTE = '"',
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '0x0a',
+    TABLOCK
+);
+GO
+
+BULK INSERT stg.CLIENTE_RAW
+FROM '/var/opt/mssql/import/dim_cliente.csv'
+WITH (
+    FORMAT = 'CSV',
+    FIRSTROW = 2,
+    FIELDQUOTE = '"',
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '0x0a',
+    TABLOCK
+);
+GO
+
+BULK INSERT stg.PRODUCTO_RAW
+FROM '/var/opt/mssql/import/dim_producto.csv'
+WITH (
+    FORMAT = 'CSV',
+    FIRSTROW = 2,
+    FIELDQUOTE = '"',
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '0x0a',
+    TABLOCK
+);
+GO
+
+BULK INSERT stg.FECHA_RAW
+FROM '/var/opt/mssql/import/dim_fecha.csv'
+WITH (
+    FORMAT = 'CSV',
+    FIRSTROW = 2,
+    FIELDQUOTE = '"',
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '0x0a',
+    TABLOCK
+);
+GO
+
+BULK INSERT stg.VENTAS_RAW
+FROM '/var/opt/mssql/import/fact_ventas.csv'
+WITH (
+    FORMAT = 'CSV',
+    FIRSTROW = 2,
+    FIELDQUOTE = '"',
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '0x0a',
+    TABLOCK
+);
+GO
+
+SELECT N'SUCURSAL_RAW' AS tabla, COUNT(*) AS filas
+FROM stg.SUCURSAL_RAW
+UNION ALL
+SELECT N'CLIENTE_RAW', COUNT(*) FROM stg.CLIENTE_RAW
+UNION ALL
+SELECT N'PRODUCTO_RAW', COUNT(*) FROM stg.PRODUCTO_RAW
+UNION ALL
+SELECT N'FECHA_RAW', COUNT(*) FROM stg.FECHA_RAW
+UNION ALL
+SELECT N'VENTAS_RAW', COUNT(*) FROM stg.VENTAS_RAW;
+GO
