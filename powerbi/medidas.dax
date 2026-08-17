@@ -1,0 +1,51 @@
+// FACT_VENTAS
+Ventas Netas = SUM(FACT_VENTAS[ingreso_neto])
+
+Utilidad Total = SUM(FACT_VENTAS[utilidad])
+
+Margen % = DIVIDE([Utilidad Total]; [Ventas Netas]; 0)
+
+Unidades = SUM(FACT_VENTAS[cantidad])
+
+Clientes Activos = DISTINCTCOUNT(FACT_VENTAS[cliente_key])
+
+Ventas Año Anterior =
+CALCULATE(
+    [Ventas Netas];
+    SAMEPERIODLASTYEAR(DIM_FECHA[fecha])
+)
+
+Variación Ventas % =
+DIVIDE(
+    [Ventas Netas] - [Ventas Año Anterior];
+    [Ventas Año Anterior];
+    0
+)
+
+// FACT_INVENTARIO
+Stock Crítico =
+COUNTROWS(
+    FILTER(
+        FACT_INVENTARIO;
+        FACT_INVENTARIO[stock_actual] <= FACT_INVENTARIO[punto_reorden]
+    )
+)
+
+// FACT_SCORING
+Clientes Riesgo Alto =
+CALCULATE(
+    DISTINCTCOUNT(FACT_SCORING[cliente_key]);
+    FACT_SCORING[segmento] = "Riesgo alto"
+)
+
+// ALERTAS_NEGOCIO
+Alertas Abiertas =
+CALCULATE(
+    COUNTROWS(ALERTAS_NEGOCIO);
+    ALERTAS_NEGOCIO[estado] = "ABIERTA"
+)
+
+// FACT_FORECAST
+Ventas Proyectadas = SUM(FACT_FORECAST[ventas_proyectadas])
+
+MAE Promedio = AVERAGE(FACT_FORECAST[mae_validacion])
